@@ -1,0 +1,11 @@
+ls -l
+#asd asd1
+pwd -a
+echo "cos"
+#a a
+./ddd a
+#a b
+./ddd a
+#a
+./ddd a
+ls

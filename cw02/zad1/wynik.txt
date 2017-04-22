@@ -1,0 +1,136 @@
+maintime
+
+ANALIZA
+			1000x8192	1500x4096	2000x512	3000x4
+sort		sys |	  sys		   sys		   lib		  lib
+		lib |
+	 	    |
+shuffle 	sys |	  lib 		   lib  	   sys   	  sys
+		lib |
+
+Tabela przedstawia, który sposób był szybszy.
+
+Poniżej przykładowe wynki.
+
+maintime START
+------TEST------
+   Liczba rekordow= 1000, rozmiar rekordu= 8192
+
+
+	Time:				R 0.00036	S 0.00000	U 0.00000
+
+Generating and coping
+	From the previous check:	R 0.88538	S 0.82000	U 0.05000
+	Time:				R 0.88574	S 0.82000	U 0.05000
+
+System bubble sort
+	From the previous check:	R 1.82247	S 1.81000	U 0.02000
+	Time:				R 2.70821	S 2.63000	U 0.07000
+
+Library bubbl sort
+	From the previous check:	R 2.00923	S 1.79000	U 0.21000
+	Time:				R 4.71744	S 4.42000	U 0.28000
+
+Coping from generated file
+	From the previous check:	R 0.02067	S 0.02000	U 0.00000
+	Time:				R 4.73811	S 4.44000	U 0.28000
+
+System shuffle
+	From the previous check:	R 0.00850	S 0.01000	U 0.01000
+	Time:				R 4.74660	S 4.45000	U 0.29000
+
+Library shuffle
+	From the previous check:	R 0.00814	S 0.01000	U 0.00000
+	Time:				R 4.75475	S 4.46000	U 0.29000
+
+------TEST------
+   Liczba rekordow= 1500, rozmiar rekordu= 4096
+
+	From the previous check:	R 0.00001	S 0.00000	U 0.00000
+	Time:				R 4.75476	S 4.46000	U 0.29000
+
+Generating and coping
+	From the previous check:	R 0.64253	S 0.60000	U 0.03000
+	Time:				R 5.39729	S 5.06000	U 0.32000
+
+System bubble sort
+	From the previous check:	R 2.52910	S 2.42000	U 0.11000
+	Time:				R 7.92639	S 7.48000	U 0.43000
+
+Library bubbl sort
+	From the previous check:	R 2.71638	S 2.33000	U 0.39000
+	Time:				R 10.64278	S 9.81000	U 0.82000
+
+Coping from generated file
+	From the previous check:	R 0.01892	S 0.02000	U 0.00000
+	Time:				R 10.66170	S 9.83000	U 0.82000
+
+System shuffle
+	From the previous check:	R 0.00680	S 0.01000	U 0.00000
+	Time:				R 10.66850	S 9.84000	U 0.82000
+
+Library shuffle
+	From the previous check:	R 0.00702	S 0.00000	U 0.01000
+	Time:				R 10.67551	S 9.84000	U 0.83000
+
+------TEST------
+   Liczba rekordow= 2000, rozmiar rekordu= 512
+
+	From the previous check:	R 0.00001	S 0.00000	U 0.00000
+	Time:				R 10.67553	S 9.84000	U 0.83000
+
+Generating and coping
+	From the previous check:	R 0.10941	S 0.10000	U 0.01000
+	Time:				R 10.78493	S 9.94000	U 0.84000
+
+System bubble sort
+	From the previous check:	R 3.11260	S 2.87000	U 0.24000
+	Time:				R 13.89753	S 12.81000	U 1.08000
+
+Library bubbl sort
+	From the previous check:	R 2.21110	S 1.65000	U 0.56000
+	Time:				R 16.10863	S 14.46000	U 1.64000
+
+Coping from generated file
+	From the previous check:	R 0.00282	S 0.00000	U 0.00000
+	Time:				R 16.11145	S 14.46000	U 1.64000
+
+System shuffle
+	From the previous check:	R 0.00586	S 0.01000	U 0.00000
+	Time:				R 16.11731	S 14.47000	U 1.64000
+
+Library shuffle
+	From the previous check:	R 0.00932	S 0.01000	U 0.00000
+	Time:				R 16.12663	S 14.48000	U 1.64000
+
+------TEST------
+   Liczba rekordow= 3000, rozmiar rekordu= 4
+
+	From the previous check:	R 0.00001	S 0.00000	U 0.00000
+	Time:				R 16.12664	S 14.48000	U 1.64000
+
+Generating and coping
+	From the previous check:	R 0.00233	S 0.00000	U 0.00000
+	Time:				R 16.12897	S 14.48000	U 1.64000
+
+System bubble sort
+	From the previous check:	R 6.31858	S 5.83000	U 0.49000
+	Time:				R 22.44755	S 20.31000	U 2.13000
+
+Library bubbl sort
+	From the previous check:	R 3.91500	S 2.85000	U 1.06000
+	Time:				R 26.36255	S 23.16000	U 3.19000
+
+Coping from generated file
+	From the previous check:	R 0.00073	S 0.00000	U 0.00000
+	Time:				R 26.36328	S 23.16000	U 3.19000
+
+System shuffle
+	From the previous check:	R 0.00744	S 0.01000	U 0.00000
+	Time:				R 26.37072	S 23.17000	U 3.19000
+
+Library shuffle
+	From the previous check:	R 0.01081	S 0.01000	U 0.00000
+	Time:				R 26.38153	S 23.18000	U 3.19000
+
+maintime END
