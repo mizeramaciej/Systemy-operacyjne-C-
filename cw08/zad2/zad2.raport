@@ -1,0 +1,29 @@
+a)
+     VERSION         1      2        3       4        5
+SIGUSR1            unic   nic      obs     nic      obs
+SIGTERM            unic   nic	   obs     nic      obs
+SIGKILL              | dla wszystkich unicestwiony |
+SIGSTOP              | dla wszystkich zastopowany |
+
+obs - obsluzony
+nic - nic sie nie stalo
+unic - unicestwiony
+
+// 1 wysłanie sygnału do procesu, gdy żaden wątek nie ma zamaskowanego tego sygnału
+// 2 wysłanie sygnału do procesu, gdy główny wątek programu ma zamaskowany ten sygnał, a wszystkie pozostałe wątki nie,
+// 3 wysłanie sygnału do procesu, gdy wszystkie wątki mają zainstalowaną niestandardową procedurę obsługi przerwania, która wypisuje informację o nadejściu tego sygnału oraz PID i TID danego wątku
+// 4 wysłanie sygnału do wątku z zamaskowanym tym sygnałem
+// 5 wysłanie sygnału do wątku, w którym zmieniona jest procedura obsługi sygnału, jak przedstawiono w punkcie 3
+
+
+b)Spraw, by w jednym z wątków następowało dzielenie przez zero i by był wygenerowany
+	odpowiedni sygnał. Jak reaguje na niego wątek, który 
+	spowodował tę sytuację, a jak inne wątki wchodzące w skład tego samego procesu?
+
+Uruchomienie programu zakonczylo sie "Błąd w obliczeniach zmiennoprzecinkowych (zrzut pamięci)".
+Nastąpiło zamkniecie pozostalych wątków jak i całego programu.
+
+
+Description:	Ubuntu 14.04.5 LTS on VirtualBox
+Release:	14.04
+Linux: 4.4.0-71-generic
