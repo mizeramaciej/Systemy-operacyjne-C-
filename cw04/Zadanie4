@@ -37,3 +37,186 @@ Program kończy działanie po zakończeniu pracy potomka albo po otrzymaniu sygn
 L i Type są argumentami programu.
 
 (*) Zamiast podstawowego wariantu program tworzy w pętli N procesów potomnych, a następnie wysyła sygnały do losowo wybranego potomka (do każdego z nich w inny sposób) Przeanalizuj wyniki z wykorzystaniem funkcji sleep pomiędzy losowaniem kolejnego potomka, wartość funkcji sleep jest ostatnim argumentem programu, domyślna wartość T=0 oznacza jego brak. Argumenty programu N, L, T=0.
+
+
+
+
+Sygnały - materiały pomocnicze
+Sygnały
+Sygnały to swego rodzaju programowe przerwania, to znaczy zdarzenia, które mogą nastąpić w dowolnym momencie działania procesu, niezależnie od tego, co dany proces aktualnie robi. Sygnały są zatem asynchroniczne. Umożliwiają one komunikację między procesami. Procesy mogą otrzymywać sygnały od jądra, innych procesów lub użytkownika.
+
+Istnieją oczywiście pewne ograniczenia - proces może wysyłać je tylko do procesów mających tego samego właściciela oraz należących do tej samej grupy (te same uid i gid). Bez ograniczeń może to czynić jedynie jądro i administrator. Ponadto jedynym procesem, który nie odbiera sygnałów jest init (PID = 1).
+
+Proces może zareagować na otrzymany sygnał na różne sposoby:
+
+Wykonanie akcji domyślnej. Najczęściej jest to zakończenie procesu i ewentualny zrzut zawartości segmentów pamięci na dysk (plik core).
+Zignorowanie sygału. Ignorować można wszystkie sygnały poza SIGKILL oraz SIGSTOP, co zapewnia, że proces zawsze można zakończyć.
+Przechwycenie sygnału, tzn. podjęcie akcji zdefiniowanej przez użytkownika
+Maskowanie - blokowanie sygnału tak, aby nie był dostarczany.
+Sygnałom przypisane są nazwy, rozpoczynające się od liter "SIG", oraz numery. O ile proces nie został zakończony w wyniku przerwania, kontynuuje on swoje działanie od miejsca przerwania.
+
+Dwa sygnały - SIGKILL i SIGSTOP - nie mogą zostać przechwycone ani zignorowane. Po otrzymaniu któregoś z nich proces musi wykonać akcję domyślną. Daje nam to możliwość bezwarunkowego zatrzymania/zakończenia dowolnego procesu, jeżeli zajdzie taka potrzeba. Nie powinno się ignorować również niektórych sygnałów związanych z błędami sprzętowymi. Jeśli chcemy przechwytywać jakiś sygnał, musimy zdefiniować funkcję która będzie wykonywana po otrzymaniu takiego sygnału, oraz powiadomić jądro za pomocą funkcji signal(), która to funkcja. Dzięki temu możemy np. sprawić że po naciśnięciu przez użytkownika ctrl+c, nasz program zdąży jeszcze zamknąć połączenia sieciowe czy pliki, usunąć pliki tymczasowe itd.
+
+Rodzaje sygnałów
+Nazwy sygnałów zdefiniowane są w pliku signal.h.
+
+SIGINT - terminalowy znak przerwania. Generowany po naciśnięciu Ctrl+C.
+SIGQUIT - terminalowy znak zakończenia. Kończy pracę i generuje zrzut pamięci. Generowany po naciśnięciu Ctrl+\.
+SIGKILL - unicestwienie. Tego sygnału nie można zignorować ani przechwycić.
+SIGTSTP - terminalowy znak zatrzymania. Generowany po naciśnięciu Ctrl+Z lub Ctrl+Y (zawieszenie lub zawieszenie z opóźnieniem). Proces zawieszony można ponownie uruchomić za pomocą sygnału SIGCONT.
+SIGSTOP - zatrzymanie. Nie można go zignorować, ani przechwycić. Umożliwia on administratorowi systemu zatrzymanie procesu.
+SIGTERM - zakończenie.
+SIGSEGV* - niepoprawne wskazanie pamięci.
+SIGHUP - zawieszenie, przerwanie łączności z terminalem. Służy do zakończenia pracy wszystkich procesów w momencie zakończenia sesji w danym terminalu.
+SIGALARM - przekroczenie czasu; wysyłany po upłyciu czasu ustalonego w funkcjach alarm() lub setitimer().
+SIGCHLD - zmiana stanu procesu potomnego.
+SIGILL* - nielegalna instrukcja.
+SIGABORT* - przerwanie procesu.
+SIGCONT - wznowienie działania zatrzymanego procesu.
+SIGUSR1, SIGUSR2 - sygnały zdefiniowane przez użytkownika.
+sygnały czasu rzeczywistego - SIGRTMIN, SIGRTMIN+n, SIGRTMAX
+Sygnały oznaczone * charakteruzuje to, iż w ich przypadku mogą zostać wykonane czynności związane z implementacją. Otrzymanie któregokolwiek z powyższych sygnałów powoduje zakończenie działania procesu, jeśli nie jest on na to przygotowany.
+
+Pełna lista sygnałów znajduje się na przykład tutaj lub w manualu do polecenia kill.
+
+Sygnały czasu rzeczywistego
+Sygnały czasu rzeczywistego to rozszerzenie mechanizmu sygnałów. Systemy UNIX-owe wspierają 32 sygnały czasu rzeczywistego. Mają one numery od SIGRTMIN do SIGRTMAX. Do kolejnych sygnałów odwołujemy się za pomocą notacji SIGRTMIN+n, ponieważ ich numery różnią się w różnych systemach UNIXowych, choć zawsze są w tej samej kolejności.
+
+Sygnały te nie posiadają predefiniowanego znaczenia; można je wykorzystać do celów określonych w danej aplikacji. Domyślnią akcją sygnału czasu rzeczywistego jest przerwanie procesu. Sygnały czasu rzeczywistego, w przeciwieństwie do standardowych sygnałów, są kolejkowane; przechowywane są w kolejce FIFO. Ponato mają priorytety, tzn. im mniejszy numer sygnału tym wcześniej zostanie dostarczony dany sygnał.
+
+Polecenia Unixa
+kill - wysyła do procesu lub grupy procesów określony sygnał. Można mu przekazać zarówno numer sygnału, jak i jego nazwę.
+
+trap - polecenie, służące do określenia reakcji procesu na dany sygnał.
+
+Funkcje
+Wysyłanie sygnałów
+kill
+Funkcja ta służy do przesyłania sygnału do wskazanego procesu w systemie. Wymaga dołączenia nagłówków sys/types.h and signal.h. Jeśli pid jest równy 0, to sygnał zostaje wysłany do wszystkich procesów których identyfikator grupy jest równy identyfikatorowi grupy wysyłającego i do których ma pozwolenie na wysyłanie sygnałów. PID == 1 oznacza wszystkie procesy w systemie, do których można wysłać sygnał, podobnie jak PID < 0, który ma dodatkowy warunek iż wartość absolutna PID musi być równa identyfikatorowi grupy. We wszystkich przypadkach wyjątkiem są procesy systemowe. Funkcja zwraca 0 w przypadku powodzenia lub -1 w przypadku wystąpienia błędu.
+
+kill(int pid, int SIGNAL);
+
+raise
+Wysyła sygnał do bieżącego procesu; do tego celu w rzeczywistości wykorzystuje funkcję kill(). O ile nie zostanie przechwycenie lub zignorowanie sygnału, proces zostanie zakończony. Wywołanie raise() jest równoważne z wywołaniem kill(getpid(), sig);
+
+int raise( int signal);
+
+sigqueue
+Funkcja ta wysyła sygnał sig do procesu o danym pid. Jeśli przekazany pid jest równy 0 sygnał nie zostanie wysłany, natomiast nastąpi sprawdzenie ewentualnych błędów, które mogłyby nastąpić przy wysyłaniu.
+
+int sigqueue(pid_t pid, int sig, const union sigval value)
+
+Argument sigval może zawierać dodatkową wartość wysłaną wraz z sygnałem. Typ sigval zdefiniowany jest następująco:
+
+union sigval {
+int sival_int;
+void *sival_ptr;
+}
+
+Odbieranie sygnałów
+signal
+Funkcja ta służy do ustawienia przechwytywania danego syngału. Pierwszy argument to numer przechwytywanego sygnału, drugi - wskaźnik na funkcję, która wykona się w przypadku przechwycenia tego sygnału. Funkcja obsługi sygnału musi przyjmować odkładnie jeden argument (numer sygnału) i nic nie zwracać. Funkcja ta zwraca poprzedni, lub SIG_ERR jeśli wystąpił błąd.
+
+void (*signal(int signo, void (*func)()))()
+
+Zamiast wskaźnika na funkcję f można również przekazać jedną z dwóch zmiennych: SIG_IGN, oznaczającą ignorowanie sygnału lub SIG_DEF, oznaczającą domyślną reakcję na sygnał.
+
+sigaction
+Jest to rozszerzenie funkcji signal - służy zatem do zmiany dyspozycji sygnału.
+
+int sigaction(int sig_no, const struct sigaction *act, struct sigaction *old_act);
+
+Wykorzystywana tu struktura sigaction wygląda następująco:
+
+struct sigaction{ 
+void (*sa_handler)(); 
+sigset_t sa_mask; 
+int sa_flags; 
+};
+
+Zmienna sa_handler zawiera wskaźnik do funkcji obsługi sygnału. sa_mask z kolei zawiera zbiór sygnałów, które mają być zablokowane na czas wykonania tej funkcji. W ten sposób możemy się zabezpieczyć przed odebraniem jakiegoś sygnału (i w konsekwencji wykonaniem jego funkcji) w czasie, kiedy jeszcze wykonuje się funkcja obsługująca inny sygnał. W szczególności drugie obsłużenie tego samego sygnału podczas obsługiwania pierwszego jego egzemplarza jest zawsze blokowane.
+
+Przykładowe użycie:
+
+void au(int sig_no) { 
+printf("Otrzymale signal %d.\n", sig_no); 
+} 
+
+int main() { 
+struct sigaction act; 
+act.sa_handler = au; 
+sigemptyset(&act.sa_mask); 
+act.sa_flags = 0; 
+sigaction(SIGINT, &act, NULL); 
+
+while(1) { 
+printf("Witaj.\n"); 
+sleep(3); 
+} 
+return 0; 
+}
+
+Pozostałe funkcje
+pause
+Zawiesza wywołujący proces aż do chwili otrzymania dowolnego sygnału. Jeśli sygnał jest ignorowany przez proces, to funkcja pause też go ignoruje. Najczęściej sygnałem, którego oczekuje pause jest sygnał pobudki SIGALARM.
+
+void pause();
+
+alarm
+Ustala czas, po jakim zostanie wygenerowany jednorazowo sygnał SIGALARM. Jeśli nie ignorujemy lub nie przechwytujemy tego sygnału, to domyślną akcją jest zakończenie procesu. Funkcja zdefiniowana w pliku unistd.h:
+
+unsigned int alarm (unsigned int sec);
+
+sleep
+Aby z niej korzystać trzeba załączyć nagłówek unistd.h. Funkcja zwraca 0 lub liczbę sekund, pozostających do zakończenia drzemki. Sprawia, że proces wywołujący ją jest zawieszany, dopóki nie zostanie wyzerowany licznik czasu określający czas pozostający do końca drzemki lub proces przechwyci sygnał, a procedura jego obsługi po zakończeniu pracy wykona return. unisigned int sleep(unsigned int seconds);
+
+Zbiory sygnałów
+Zbiory (zestawy) sygnałów definiuje się, aby pogrupować różne sygnały. Ma to umożliwić wykonywanie pewnych działań na całej grupie sygnałów. Zestaw sygnałów definiowany jest przez typ sigset_t. W tej strukturze każdemu sygnałówi przypisany jest jeden bit (prawda/fałsz), mówiący, czy dany sygnał należy do danego zestawu czy nie.
+
+sigemptyset
+Inicjalizacja pustego zbioru sygnałów.
+
+int sigemptyset ( sigset_t* signal_set );
+
+sigfillset
+Inicjalizacja zestawu zawierającego wszystkie sygnały istniejące w systemie.
+
+int sigfillset ( sigset_t* signal_set );
+
+sigaddset
+Dodawanie pojedyńczego sygnału do zbioru.
+
+int sigaddset ( sigset_t* signal_set, int sig_no );
+
+sigdelset
+Usunięcie pojedyńczego sygnału z zestawu. Zwraca int sigdelset ( sigset_t* signal_set, int sig_no );
+
+sigismember
+Sprawdzenie, czy w zestawie znajduje się dany sygnał.
+
+int sigismember ( sigset_t *signal_set, int sig_no );
+
+Maskowanie - blokowanie sygnałów
+Można poinformować jądro o tym iż nie chcemy, aby przekazywano sygnały bezpośrednio do danego procesu. Do tego celu wykorzystuje się zbiory sygnałów zwane maskami. Kiedy jądro usiłuje przekazać do procesu sygnał, który aktualnie jest blokowany, to zostaje on przechowany do momentu jego odblokowania lub ustawienia ignorowania tego sygnału przez proces.
+
+sigprocmask
+Funkcja ustawiająca maskę dla aktualnego procesu.
+
+int sigprocmask(int how, const sigset_t *new_set, sigset_t *old_set);
+
+Parametr how definiuje sposób uaktualnienia maski sygnałów. Może przyjmować następujące wartości:
+
+SIG_BLOCK - nowa maska to połączenie maski starej i nowej (new_set - zbiór sygnałów, które chcemy blokować).
+SIG_UNBLOCK - maska podana jako argument to zbiór sygnałów, które chcemy odblokować.
+SIG_SETMASK - nadpisujemy starą maskę nową.
+Do parametru old_set zostanie zapisana poprzednia maska.
+
+sigpending
+Ta funkcja służy do odczytania listy sygnałów, które oczekuję na odblokowanie w danym procesie. Do zmiennej set zapisywany jest zestaw oczekujących sygnałów.
+
+int sigpending(sigset_t *set);
+
+sigsuspend
+Ta funkcja zmienia procesową maskę sygnałów na tę wskazaną parametrem set, a także wstrzymuje działanie procesu do momentu otrzymania jakiegoś sygnału. Zwraca -1 jeśli otrzymany sygnał nie powoduje zakończenia procesu.
+
+int sigsuspend(cost sigset_t *set);
