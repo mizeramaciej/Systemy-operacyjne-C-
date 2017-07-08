@@ -1,0 +1,214 @@
+Zadania - Zestaw 5
+Potoki nazwane i nienazwane
+Zadanie 1
+Należy napisać interpreter poleceń obsługujący operator pipe - "|". Interpreter czyta kolejne linie z wejścia standardowego. Każda linia ma format
+
+prog1 arg1 ... argn1 | prog2 arg1 ... argn2 | ... | progN arg1 ... argnN
+
+Dla takiej linii interpreter powinien uruchomić wszystkie N poleceń w osobnych procesach, zapewniając przy użyciu potoków nienazwanych oraz funkcji dup2, by wyjście standardowe procesu k było przekierowane do wejścia standardowego procesu (k+1). Można założyć ograniczenie górne na ilość obsługiwanych argumentów (co najmniej 3) oraz ilość połączonych komend w pojedynczym poleceniu (co najmniej 20). Interpreter powinien umożliwiać uruchamianie programów znajdujących się w katalogu na liście w zmiennej PATH bez podawania pełnej ścieżki. Po uruchomieniu ciągu programów składających się na pojeczyne polecenie (linijkę) interpreter powinien oczekiwać na zakończenie wszystkich tych programów.
+
+Uwaga: należy użyć pipe/fork/exec, nie popen
+
+
+Zadanie 2
+W ramach tego zadania stworzony zostanie wizualizator zbioru Mandelbrota. Zbiór ten składa się z liczb zespolonych c takich, że ciąg {zn} zdefiniowany poprzez
+
+           z0 = 0, zn+1 = fc(zn),      gdzie fc(z) = z2
+
+ma moduł ograniczony przez 2, tj. |zn| <= 2 dla każdego n. W praktyce wizualizacja polega na tym, że dla zadanego punktu c sprawdzamy, czy po pewnej ustalonej ilości iteracji K ten warunek jest spełniony i kolorujemy punkt c na podstawie tego, po ilu iteracjach warunek przestaje być prawdą - nazwijmy tę liczbę iters(c). Jeśli np. K = 100 i dla danego c dopiero w 30 iteracji dostajemy zn takie, że |zn| > 2, to iters(c) = 30. Jeśli po K iteracjach warunek pozostaje spełniony, to przyjmujemy iters(c) = K.
+
+Wizualizację będziemy wykonywać dla punktów w prostokątnym obszarze D = { c: -2 < Re(c) < 1, -1 < Im(c) < 1 }
+
+Należy napisać dwa programy - master oraz slave - które będą komunikować się poprzez potok nazwany (kolejkę FIFO), do której ścieżkę będą dostawać jako argument wywołania. Do potoku pisać będzie wiele procesów wykonujących program slave, a czytał będzie z niej jeden proces master.
+
+Slave
+
+Slave przyjmuje trzy argumenty - ścieżkę do potoku nazwanego i liczby całkowite N oraz K. Wykonuje następujące akcje:
+
+otwiera potok nazwany
+generuje N losowych punktów w obszarze D, dla każdego punktu c oblicza wartość iters(c) oraz zapisuje do potoku jedną linijkę zawierającą część rzeczywistą oraz urojoną punktu c oraz obliczoną wartość iters(c)
+zamyka potok nazwany
+Master
+
+Master przyjmuje dwa argumenty - ścieżkę do potoku nazwanego i liczbę całkowitą R. Tworzy on potok o podanej nazwie. Master przechowuje zainicjalizowaną zerami tablicę dwuwymiarową T o rozmiarze R x R reprezentującą obraz obszaru D - każdy element tablicy to jeden "piksel" i odpowiada w naturalny sposób pewnemu kawałkowi obszaru D.
+
+Master czyta z potoku nazwanego kolejne linijki aż do momentu gdy zostanie on zamknięty przez wszystkie procesy do niego piszące. Każda linijka to informacja o punkcie c = x + iy oraz wartości iters(c). Dla każdej oczytanej linijki master zapisuje w tablicy T wartość iters(c) w miejscu odpowiadającym pikselowi reprezentującemu kawałek D w którym leży punkt c.
+
+Po zakończeniu czytania master zapisuje zawartość tablicy T do pliku o nazwie data tak, że w każdej linijce znajdują się oddzielone białymi znakami wartości indeksów i, j oraz wartość T[i][j], w kolejności takiej jak w poniższym przykładzie:
+
+0 0 10
+0 1 35
+0 2 11
+1 0 5
+1 1 77
+
+itd. Następnie master uruchamia program Gnuplot przy użyciu funkcji popen, i przekazuje na jego wejście standardowe następujące polecenia:
+
+set view map
+set xrange [0:X]
+set yrange [0:X]
+plot 'data' with image
+
+gdzie za X wstawiona ma być wartość argumentu R. W efekcie powinna powstać wizualizacja zbioru Mandelbrota podobna do poniższej:
+
+
+
+(R = 600, K = 100, 10 000 000 losowych punktów)
+
+Uwaga: aby okno z wizualizacją nie znikało od razu, po przesłaniu poleceń do Gnuplota należy
+
+wyczyścić bufor potoku przez który przekazujemy polecenia do Gnuplota
+np. oczekiwać na znak z klawiatury
+Można użyć np. takiego kodu:
+
+fflush(pipe);
+getc(stdin);
+
+
+
+
+
+
+Potoki - materiały pomocnicze
+Potoki
+
+Potoki stanowią jeden z podstawowych mechanizmów komunikacji międzyprocesowej w systemie Linux. Potoki umożliwiają wymianę danych pomiędzy procesami w sposób przypominający wykorzystanie pliku (np. dostęp do nich odbywa się poprzez deskryptory plików), natomiast unikają narzutu fizycznych operacji dyskowych, bowiem zapis i odczyt odbywają się do/z pamięci operacyjnej.
+
+Istnieją dwa rodzaje potoków: potoki nienazwane, oraz potoki nazwane, często nazywane też kolejkami lub FIFO. Są one podobne pod względem interfejsu służącego do ich użytkowania, natomiast spełniają nieco różne role i posiadają inne ograniczenia.
+
+
+Potoki nienazwane
+Potoki nienazwane są najstarszym mechanizmem komunikacji międzyprocesowej (IPC) w systemach unixowych. Zakres oferowanej przez nie funkcjonalności jest mocno ograniczony, jednak często wystarczający, co wraz ze stosunkowo prostym interfejsem sprawia, że pozostają często używane. Ze względu na opisany niżej sposób ich tworzenia, potoki nienazwane umożliwiają komunikację jedynie pomiędzy procesami posiadającymi wspólnego przodka.
+
+Ponadto, potoki nienazwane umożliwiają komunikację tylko w jedną stronę (tzw. half-duplex) - intuicyjnie, potok ma dwa końce odpowiadające komunikującym się procesom i ustalony kierunek przepływu danych, nie można przesyłać danych "pod prąd". Standard Single UNIX Specification dopuszcza potoki dwukierunkowe (full duplex) jako rozszerzenie i niektóre systemy unixopodobne taką funkcjonalność oferują, natomiast nie jest to przenośne (np. Linux tego nie robi). Jeśli potrzebujemy przesyłać dane w obie strony, najlepiej użyć dwóch różnych potoków (albo innego mechanizmu IPC).
+
+
+Tworzenie potoku nienazwanego
+Do utworzenia potoku nienazwanego służy funkcja pipe z <unistd.h> o sygnaturze
+
+int pipe(int fd[2]);
+Jako argument przyjmuje ona tablicę dwóch liczb całkowitych, do których po stworzeniu potoku zapisywane są deskryptory reprezentujące "wlot", czyli końcówkę do zapisu - fd[1], oraz "wylot", czyli końcówkę do odczytu - fd[0]. Indeksy te są spójne z numeracją wejścia i wyjścia standardowego. Wartość zwracana standardowo informuje o sukcesie (0) lub porażce (-1). Wywołanie może zakończyć się porażką, jeśli przekażemy nieprawidłowy adres tablicy, lub proces przekroczy limit ilości otwartych deskryptorów.
+
+
+Korzystanie z potoku
+Do przesyłania danych przez potok wykorzystywane są znane już funkcje read i write, do których jako deskryptory podać należy deskryptor odpowiedniego końca potoku. Domyślnie operacje odczytu i zapisu są blokujące - read czeka, aż w buforze potoku znajdą się jakieś dane (niekoniecznie tyle, ile zażądaliśmy), zaś write czeka, aż zapisane zostaną wszystkie przekazane do niego dane.
+
+Operacje read i write na deskryptorach reprezentujących potoki (zarówno nienazwane, jak i nazwane) mają pewne specjalne zachowania:
+
+Operacja read na potoku, którego końcówka do zapisu nie ma żadnego otwartego deskryptora zwraca 0 (EOF) po przeczytaniu wszystkich danych
+Operacja write na potoku, którego końcówka do odczytu została zamknięta powoduje wysłanie do procesu piszącego sygnału SIGPIPE i zwrócenie z write wartości -1 plus ustawnienie errno na EPIPE. Innymi słowy, nie można pisać do potoku, z którego nikt nie czyta.
+
+Użycie potoku pomiędzy procesami
+Powyższe informacje pozwalają nam stworzyć potok i przesyłać za jego pomocą dane w obrębie procesu, który go stworzył. By wykorzystać taki potok do komunikacji międzyprocesowej, skorzystamy z faktu, że proces potomny otrzymuje zduplikowane deskryptory plików procesu macierzystego. Stąd, jeśli w procesie A stworzymy potok poprzez wywołanie funkcji pipe, a następnie stworzymy proces potomny B przy użyciu funkcji fork, proces B będzie posiadał otwarte deskryptory obydwu końców potoku, tak samo jak proces A.
+
+
+Komunikacja rodzic - dziecko
+
+W najprostszym wariancie mechanizm ten można wykorzystać do przesyłania danych pomiędzy rodzicem a dzieckiem. Załóżmy dla przykładu, że chcemy przesyłać dane z rodzica do dziecka. Możemy posłużyć się następującym kodem:
+
+int fd[2];
+pipe(fd);
+pid_t pid = fork();
+if (pid == 0) { // dziecko
+    close(fd[1]); 
+    // read(fd[0], ...) - odczyt danych z potoku
+} else { // rodzic
+    close(fd[0]);
+    // write(fd[1], ...) - zapis danych do potoku
+}
+Ze względu na zachowanie funkcji read i write dla potoków opisane wyżej najlepiej po wywołaniu funkcji fork zamknąć w każdym procesie nieużywaną końcówkę potoku (deskryptory są duplikowane, nie współdzielone, więc są niezależne dla rodzica i dziecka).
+
+
+Komunikacja dziecko - dziecko
+
+Analogicznie możemy wykorzystać potoki do komunikacji pomiędzy wieloma procesami potomnymi:
+
+int fd[2];
+pipe(fd);
+if (fork() == 0) { // dziecko 1 - pisarz
+    close(fd[0]);
+    // ...
+} else if (fork() == 0) { // dziecko 2 - czytelnik
+    close(fd[1]);
+    // ...
+}
+Przekierowanie wejścia i wyjścia standardowego
+
+Powyższe sposoby są wystarczające, jeśli chcemy komunikować się z procesami, które wykonują kod programu, w którym wywołujemy funkcję fork. Czasem chcemy jednak wywołać program zewnętrzny poprzez fork + exec i np. przekazać jakieś dane na jego wejście standardowe, lub stworzyć pipeline przetwarzający dane poprzez "przepuszczenie" danych przez kilka programów. Aby tego dokonać, możemy ustawić w stworzonych procesach wejście/wyjście standardowe na odpowiednie deskryptory potoku używając funkcji dup2:
+
+int dup2(int oldfd, int newfd);
+Jej działanie polega na skopiowaniu deskryptora newfd na miejsce deskryptora o numerze oldfd i w razie potrzeby uprzednim zamknięciu oldfd (chyba, że oldfd i newfd są równe, wtedy wywołanie nie robi nic). Podmiana wejścia/wyjścia standardowego sprowadza się do skopiowania deskryptora potoku na miejsce STDIN_FILENO / STDOUT_FILENO. Przykładowy kod wywołania grep-a i podmiany jego wejścia standardowego na potok:
+
+int fd[2];
+pipe(fd);
+pid_t pid = fork();
+if (pid == 0) { // dziecko
+    close(fd[1]); 
+    dup2(fd[0],STDIN_FILENO);
+    execlp("grep", "grep","Ala", NULL);
+} else { // rodzic
+    close(fd[0]);
+    // write(fd[1], ...) - przesłanie danych do grep-a
+}
+Analogicznie możemy łączyć wywołania programów w ciągi, jak robi to np. shell.
+
+
+Uproszczenie - popen
+
+Powyższy przypadek użycia pojawia się na tyle często, że biblioteka standardowa udostępnia funkcje pomocnicze do jego obsługi w <stdio.h>:
+
+FILE* popen(const char* command, const char* type);
+int pclose(FILE* stream);
+Funkcja popen tworzy potok, nowy proces, ustawia jego wejście lub wyjście standardowe na stosowną końcówkę potoku (zależnie od wartości argumentu type - "r" oznacza, że chcemy odczytać wyjście procesu, "w" że chcemy pisać na jego wejście) oraz uruchamia w procesie potomnym shell (/bin/sh) podając mu wartość command jako polecenie do zinterpretowania. Jeśli operacja ta się powiedzie, popen zwraca obiekt FILE*, którego można używać z funkcjami wejścia/wyjścia biblioteki standardowej C.
+
+Funkcja pclose oczekuje, aż tak proces powiązany z argumentem stream zakończy swoje działanie. W przypadku błędu zwraca -1, w przeciwnym wypadku status zakończenia tego procesu.
+
+Analogiczne wywołanie grep-a przy pomocy popen:
+
+FILE* grep_input = popen("grep Ala", "w");
+// fputs(..., grep_input) - przesłanie danych do grep-a
+pclose(grep_input);
+Potoki nazwane
+Jednym z ograniczeń potoków nienazwanych jest to, że pozwalają na komunikację jedynie pomiędzy procesami posiadającego wspólnego przodka (który musi stworzyć potok). Potoki nazwane omijają to ograniczenie poprzez wykorzystanie systemu plików do identyfikacji potoku - potok nazwany jest reprezentowany przez pewien plik na dysku. Dzięki temu wykorzystywać potok nazwany mogą dowolne procesy, bez konieczności pokrewieństwa.
+
+Uwaga: Należy pamiętać, że wciąż nie jest to to samo, co wykorzystanie zwykłego pliku do przekazywania danych pomiędzy procesami. Plik służy tu tylko do identyfikacji potoku nazwanego, operacje zapisu i odczytu wciąż operują tylko na buforze w pamięci. Plik reprezentujący potok nazwany nie jest plikiem regularnym (S_IFREG), a plikiem specjalnym typu FIFO (S_IFIFO).
+
+
+Tworzenie potoku nazwanego
+Dostępne są dwa narzędzia do utworzenia pliku reprezentującego potok nazwany - mkfifo oraz mknod. Oba są dostępne zarówno jako program który można wywołać w terminalu, jak i jako wywołanie systemowe. Narzędzie mknod jest bardziej ogólne - potrafi tworzyć pliki specjalne różnych typów, mkfifo natomiast tworzy wyłącznie potoki nazwane.
+
+
+Tworzenie potoku w terminalu
+
+Utworzyć potok o nazwie NAZWA możemy następującymi poleceniami:
+
+mkfifo NAZWA
+mknod NAZWA p
+Usunąć potok nazwany możemy tak, jak każdy inny plik:
+
+rm NAZWA
+Tworzenie potoku w programie
+
+Funkcje mkfifo i mknod wymagają dołączenia <sys/types.h> oraz <sys/stat.h>:
+
+int mkfifo(const char *pathname, mode_t mode);
+int mknod(const char *pathname, mode_t mode, dev_t dev);
+Podobnie jak dla funkcji open, istnieje wariant z sufixem _at, który pozwala stworzyć potok nazwany o zadanej nazwie w folderze reprezentowanym przez deskryptor. Te warianty wymagają <fcntl.h>:
+
+int mkfifoat(int dirfd, const char *pathname, mode_t mode);
+int mknodat(int dirfd, const char *pathname, mode_t mode, dev_t dev);
+Argument mode działa jak w przypadku funkcji open, z tą różnicą że do funkcji typu mknod w celu stworzenia potoku nazwanego przekazać powinniśmy dodatkowo z-or-owaną flagę S_IFIFO. Argument dev jest wówczas ignorowany, więc można przekazać np. 0.
+
+Używanie potoków nazwanych
+Aby móc używać potoku nazwanego, musimy otworzyć plik go reprezentujący - open / fopen. Podobnie jak w przypadku potoków nienazwanych, odczyt i zapis odbywa się przy użyciu tych samych funkcji, co w przypadku zwykłych plików - read/write lub funkcje biblioteczne. Reguły są analogiczne do tych przy potoku nazwanym - nie można pisać do potoku, którego nikt nie czyta, przeczytanie wszystkiego z potoku do którego nikt już nie pisze daje efekt taki, jak napotkanie końca pliku.
+
+Domyślnie otwieranie potoku nazwanego w trybie do odczytu blokuje do momentu, gdy jakiś inny proces otworzy potok w trybie do zapisu. Analogicznie w drugą stronę - otwieranie w trybie do zapisu blokuje do momentu, gdy ktoś inny otworzy w trybie do odczytu.
+
+Uwaga odnośnie wielu procesów (> 2)
+W przypadku obu rodzajów potoków możliwe jest skonstruowanie sytuacji, w której wiele procesów pisze do jednego końca potoku i/lub wiele procesów czyta z drugiego końca potoku. W szczególności potok nazwany można próbować wykorzystać jako bufor do którego jedna grupa procesów wpisuje jakieś jednostki danych (np. wyniki obliczeń), a druga grupa je pojedynczo odczytuje i przetwarza.
+
+Problemem w takiej sytuacji staje się atomiczność operacji wejścia/wyjścia. Jeśli procesy A i B próbują jednocześnie zapisywać dane, nie ma w ogólności gwarancji, że całość danych z procesu A zostanie zapisana przed całością danych z procesu B lub odwrotnie - może wystąpić sytuacja, w której zapisany do potoku zostanie kawałek danych procesu A, potem kawałek danych procesu B itd. Podobna sytuacja może mieć miejsce z odczytami.
+
+W przypadku operacji zapisu, POSIX gwarantuje, że żądania zapisu danych wielkości nie większej, niż wartość stałej PIPE_BUF (co najmniej 512) z pliku <limits.h> będą wykonane atomicznie. Wartości PIPE_BUF dla różnych systemów można zobaczyć tutaj (dla Linuxa jest to 4096). Jeśli możemy zatem zagwarantować, że wszystkie procesy piszące do potoku nazwanego zachowują to ograniczenie, wieloprocesowe zapisy są bezpieczne.
+
+W przypadku operacji odczytu nie ma tego rodzaju gwarancji, w związku z czym najlepiej unikać wielu procesów czytających z tego samego potoku nazwanego, a w razie potrzeby zaimplementowania tego rodzaju komunikacji wykorzystać inne mechanizmy.
