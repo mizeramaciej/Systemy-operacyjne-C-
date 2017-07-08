@@ -1,0 +1,39 @@
+Zadania - Zestaw 4
+Zestaw 4. Sygnały
+Rodzaje sygnałów: SIGINT, SIGQUIT, SIGKILL, SIGTSTP, SIGSTOP, SIGTERM, SIGSEGV, SIGHUP, SIGALARM, SIGCHLD, SIGUSR1, SIGUSR2
+Sygnały czasu rzeczywistego: SIGRTMIN, SIGRTMIN+n, SIGRTMAX
+Przydatne polecenia Unix: kill, ps
+Przydatne funkcje systemowe: kill, raise, sigqueue, signal, sigaction, sigemptyset, sigfillset, sigaddset, sigdelset, sigismember, sigprocmask, sigpending, pause, sigsuspend
+
+Zadanie 1
+Napisz program wypisujący kolejną literą alfabetu od A do Z. Po odebraniu sygnału SIGTSTP program zaczyna wypisywać litery wstecz. Po ponownym wysłaniu SIGTSTP program powraca do pierwotnego wypisywania. Program powinien umożliwiać wielokrotne przechodzenie przez powyższy cykl (sygnałem SIGTSTP).
+
+Program powinien również obsługiwać sygnał SIGINT. Po jego odebraniu program wypisuje komunikat "Odebrano sygnał SIGINT" i kończy działanie. W kodzie programu, do przechwycenia sygnałów użyj zarówno funkcji signal, jak i sigaction (np. SIGINT odbierz za pomocą signal, a SIGTSTP za pomocą sigaction).
+
+Zadanie 2
+Napisz program, który tworzy N potomków i oczekuje na ich prośby na przejście (sygnały SIGUSR1). Po uzyskaniu K próśb, proces powinien pozwolić kontynuować działanie wszystkim procesom, które poprosiły o przejście (wysłać im sygnał pozwolenia na rozpoczęcie pracy) i niezwłocznie akceptować każdą kolejną prośbę. Program powinien wypisać listę wszystkich otrzymanych sygnałów wraz numerem PID potomka oraz kodem zakończenia procesu (w przypadku otrzymania sygnału zakończenia pracy potomka).
+
+Program kończy działanie po zakończeniu pracy ostatniego potomka albo po otrzymaniu sygnału SIGINT (w tym wypadku należy zakończyć wszystkie działające procesy potomne).
+
+N i M są argumentami programu.
+
+Zachowanie dzieci powinno być następujące. Każde dziecko najpierw symuluje pracę (uśnie na 0-10 sekund). Następnie wysyła sygnał SIGUSR1 prośby o przejście, a po uzyskaniu pozwolenia losuje jeden z 32 sygnałów czasu rzeczywistego  (SIGRTMIN,SIGRTMAX), wysyła go do rodzica i kończy działanie, zwracając wypisaną różnicę czasu między wysłaniem prośby a wysłaniem sygnału jako kod zakończenia procesu.
+
+Zadanie 3
+Napisz program który tworzy proces potomnych i wysyła do niego L sygnałów SIGUSR1, a następnie sygnał zakończenia wysyłania SIGUSR2. Potomek po otrzymaniu sygnałów SIGUSR1 od rodzica zaczyna je odsyłać do procesu macierzystego, a po otrzymaniu SIGUSR2 kończy pracę.
+
+Proces macierzysty w zależności od argumentu Type (1,2,3) programu wysyła sygnały na trzy różne sposoby:
+
+SIGUSR1, SIGUSR2 za pomocą funkcji kill
+SIGUSR1, SIGUSR2 za pomocą funkcji sigqueue
+wybrane 2 sygnały czasu rzeczywistego za pomocą kill
+Program powinien wypisywać informacje o:
+
+liczbie wysłanych sygnałów do potomka
+liczbie odebranych sygnałów przez potomka
+liczbie odebranych sygnałów od potomka
+Program kończy działanie po zakończeniu pracy potomka albo po otrzymaniu sygnału SIGINT (w tym wypadku należy zakończyć proces potomny).
+
+L i Type są argumentami programu.
+
+(*) Zamiast podstawowego wariantu program tworzy w pętli N procesów potomnych, a następnie wysyła sygnały do losowo wybranego potomka (do każdego z nich w inny sposób) Przeanalizuj wyniki z wykorzystaniem funkcji sleep pomiędzy losowaniem kolejnego potomka, wartość funkcji sleep jest ostatnim argumentem programu, domyślna wartość T=0 oznacza jego brak. Argumenty programu N, L, T=0.
